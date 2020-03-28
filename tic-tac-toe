@@ -1,0 +1,203 @@
+#!/bin/bash 
+
+echo You enter your circles like in an oldschool mobile phone.
+
+end=0
+
+declare -a p
+
+
+for value in {1..9}
+do
+	p[value]=-
+done
+
+declare -a computer_moves
+declare -a player_moves
+
+count=1
+
+player_lost=3
+
+until [ $end -eq 1 ]
+do
+
+       while read -p 'Enter position: ' position
+       do
+		is_number=$( echo $position | egrep '^[1-9]$' )
+		if [ -z "$is_number" ]
+		then
+			position=0
+		fi
+		is_emty=1
+		for value in "${player_moves[@]}" 
+		do
+			if [ $value -eq "$position" ]
+			then
+				is_emty=0
+			fi
+		done
+		for value in "${computer_moves[@]}"
+		do
+			if [ $value -eq "$position" ]
+			then
+				is_emty=0
+			fi
+		done
+		if [ -n "$is_number" ] && [ $is_emty -eq 1 ]
+		then
+			break
+		fi
+	done
+	player_moves[$count]="$position"
+	p[$position]=o
+
+
+
+
+       if [ $count -eq 1 ]
+	then
+		number=` ./random_position.sh "${p[@]}" `
+        	computer_moves[$count]="$number"
+		p[$number]=x
+	fi
+
+	if [ $count -eq 2 ]
+	then
+		next_position=` ./test_three_group.sh ${player_moves[1]} ${player_moves[2]} `
+		
+		is_number=$( echo $next_position | egrep '^[1-9]$' )
+
+		if [ -z "$is_number" ]
+		then
+			next_position=0
+		fi
+
+		if [ "$next_position" -gt 0 ] && [ ${p[$next_position]} = '-' ]
+		then
+			p[$next_position]=x
+			computer_moves[$count]="$next_position"
+		else
+			next_position=0
+		fi
+
+		if [ $next_position -eq 0 ]
+		then
+			number=` ./random_position.sh "${p[@]}" `
+        		computer_moves[$count]="$number"
+			p[$number]=x
+
+		fi
+	fi
+
+	if [ $count -gt 2 ] 
+	then
+		count_minus=$(( $count - 1 ))
+		count_min_2=$(( $count - 2 ))
+		next_position=` ./test_three_group.sh ${computer_moves[$count_min_2]} ${computer_moves[$count_minus]} `
+		
+		is_number=$( echo $next_position | egrep '^[1-9]$' )
+
+		if [ -z "$is_number" ]
+		then
+			next_position=0
+		fi
+
+		if [ "$next_position" -gt 0 ] && [ ${p[$next_position]} = '-' ]
+		then
+			p[$next_position]=x
+			computer_moves[$count]="$next_position"
+			player_lost=1
+		else
+			next_position=0
+		fi
+		
+		if [ $next_position -eq 0 ]
+		then
+			current_count=$count
+			while [ $current_count -gt 1 ]
+			do
+				new_count=$(( $current_count - 1 ))
+				while [ $new_count -gt 0 ]
+				do
+					next_position=` ./test_three_group.sh ${player_moves[$new_count]} ${player_moves[$current_count]} `
+					is_number=$( echo $next_position | egrep '^[1-9]$' )
+
+					if [ -z "$is_number" ]
+					then
+						next_position=0
+					fi
+
+					if [ "$next_position" -gt 0 ] && [ ${p[$next_position]} = '-' ]
+					then
+						p[$next_position]=x
+						computer_moves[$count]="$next_position"
+						break 2
+					else
+						next_position=0
+					fi
+
+					(( new_count-- ))
+				done
+				(( current_count-- ))
+			done
+
+
+			if [ $next_position -eq 0 ] && [ ! $count -eq 5 ]
+			then
+				number=` ./random_position.sh "${p[@]}" `
+        			computer_moves[$count]="$number"
+				p[$number]=x
+			fi
+
+		fi	
+	fi	
+			
+
+
+
+	echo ${p[1]} ${p[2]} ${p[3]}
+       	echo ${p[4]} ${p[5]} ${p[6]}
+       	echo ${p[7]} ${p[8]} ${p[9]}
+
+	if [ $count -gt 3 ] 
+	then
+		new_count=$(( $count - 1 ))
+		
+		while [ $new_count -gt 0 ]
+		do
+			next_position=` ./test_three_group.sh ${player_moves[$new_count]} ${player_moves[$count]} `
+			is_number=$( echo $next_position | egrep '^[1-9]$' )
+
+			if [ -z "$is_number" ]
+			then
+				next_position=0
+			fi
+
+			if [ "${p[$next_position]}" = 'o' ]
+			then
+				echo You won !
+				break 2
+			fi
+			(( new_count-- ))
+
+		done
+	fi
+
+	if [ $player_lost -eq 1 ]
+	then
+		echo You lost !
+		end=1
+	fi
+
+	if [ $count -eq 5 ]
+	then
+		break 
+	fi
+
+	(( count++ ))
+
+done
+
+echo Done!
+	
